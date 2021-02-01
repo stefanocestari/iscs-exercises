@@ -1,0 +1,27 @@
+<div class="container">
+  <div class="row">
+    <div class="col-12">  
+      <h1>This is Football!</h1>
+      <form action="" name="football" (ngSubmit)="processData()">
+        <input type="file" name="inputFile" (change)="updateInputFile($event)" accept=".dat"> 
+        <input type="submit" value="Elabora" class="btn btn-primary">
+      </form>
+      <table *ngIf="data?.length" class="table">
+          <thead>
+              <tr>
+              <th *ngFor="let id of getTableData()">
+                  {{id.label}}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of data" [ngClass]="{ 'highlight' : hasLesserGoalGap(row) }">
+              <td *ngFor="let id of getTableData()"> 
+                {{row[id.label]}}
+              </td>
+            </tr>
+          </tbody>
+      </table>
+    </div>
+  </div>
+</div>

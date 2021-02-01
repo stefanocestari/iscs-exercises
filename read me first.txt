@@ -1,0 +1,11 @@
+Entrambi i progetti sono SPA in Angular 11.
+
+Prevedono un form di caricamento nel template html (file app.component.html) contenente un input di tipo file (configurato per inputare solo file di estensione .dat) e, a caricamento dati concluso, una tabella per mostrare l'intero dataset evidenziando il dato di nostro interesse (la/le squadra/e con la minor differenza reti o il/i giorno/i con minore escursione termica.
+
+La logica di Parsing e Validazione del file Dat è definita nel servizio DatParserService (file dat-parser.service.ts), incluso in entrambi i progetti.
+Il suo metodo principale (.parse()) acceta come input il contenuto di un file e un array di InputDefinition (interfaccia definita nello stesso file) che descrivano i dati contenuti nel file indicando nome del dato, numero di colonne che esso occupa, tipo ed eventuale opzionalità dello stesso.
+Il metodo parse valuta per ciascuna riga che il dato estratto sia aderente alla definizione degli input fornita, e se così lo pusha nell'array dei dati da ritornare, altrimenti restituisce una loggata in console.
+
+I controller dei due progetti (file app.component.ts) invocano il parse del DatService dopo aver verificato la presenza di un file nell'input nel metodo associato al submit del form e, a parsing avvenuto, valutano la presenza di dati validi nell'array ritornato ed applicano le logiche applicative atte a determinare il dato di nostro interesse.
+
+ 
