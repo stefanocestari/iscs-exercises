@@ -30,7 +30,7 @@ export class DatParserService {
           let input = line.substr(0, id.length);
           line = line.substr(id.length, line.length);
             input =  input.trim();
-            if (id.type === 'Number') {
+            if (id.type === 'number') {
               lineData[id.label] = Number(input);
             } else {
               lineData[id.label] = input;

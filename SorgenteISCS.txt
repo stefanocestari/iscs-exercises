@@ -1,0 +1,424 @@
+NB: entrambi i progetti sono app angular generate con Angular Cli
+
+Qui di seguito riporto unicamente i sorgenti che sono stati modificati per il progetto
+
+
+DatParserService (comune a entrambi i progetti) ---------------------------------------------------
+
+import { Injectable } from '@angular/core';
+
+export interface InputDefinition {
+  label: string;
+  length: number;
+  type: string
+  optional?: boolean;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DatParserService {
+
+  constructor() { }
+
+  parse(text:string, inputDefinitions:InputDefinition[] = []):any{
+    
+    let lines = text.split(/\r?\n/g); //split by newline chars to get all lines as array
+    let k = -1;
+    let inputs = lines[0].trim().replace(/ +/g, ',').split(',');
+    let data = [];
+    inputs = inputs.map( input => input.trim());
+
+    for (let i = 1; i < lines.length; i++) { //skip first line as it is Nlines
+      let line = lines[i];
+        if(line) {
+        let lineData:any = {};
+        for (let id of inputDefinitions){
+          let input = line.substr(0, id.length);
+          line = line.substr(id.length, line.length);
+            input =  input.trim();
+            if (id.type === 'number') {
+              lineData[id.label] = Number(input);
+            } else {
+              lineData[id.label] = input;
+            }
+        }
+        if(this.dataValidator(lineData, inputDefinitions)){
+          data.push(lineData);
+        } else {
+          console.log("data at line " + i + " is invalid")
+        }
+      }
+    }
+    console.log('parsedData =', data);
+
+    return data;
+  }
+
+  dataValidator(lineData:any, inputDefinitions: InputDefinition[]):boolean{
+
+    let check = true;
+    for (let id of inputDefinitions){
+      const prop = lineData[id.label];
+      if (!( prop || prop === 0 || id.optional  )) {
+        check = false;
+      }
+      if (lineData[id.type] === 'number') {
+        if (isNaN(prop)) {
+          check = false;
+        }
+      } 
+    }
+    
+    return check;
+
+   } 
+
+}
+
+
+FOOTBAL -------------------------------------------------------------------------------------------
+
+app.module.ts -------------------------------------------------------------------------------------
+
+import { NgModule } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
+
+import { AppComponent } from './app.component';
+import { DatParserService } from './services/dat-parser.service';
+
+
+@NgModule({
+  declarations: [
+    AppComponent
+  ],
+  imports: [
+    BrowserModule,
+    FormsModule,
+    ReactiveFormsModule
+  ],
+  providers: [
+    DatParserService
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+
+app.component.ts -------------------------------------------------------------------------------------
+
+import { Component } from '@angular/core';
+import { DatParserService, InputDefinition } from './services/dat-parser.service';
+
+export interface TeamRecord {
+  placement: string;
+  teamName: string;
+  played: number;
+  wins: number;
+  lossess: number;
+  draws: number;
+  f: number;
+  a: number;
+  points: number;
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+
+  inputDefinitions:InputDefinition[] = [
+    { label: 'placement', length: 7, type: 'string' },
+    { label: 'teamName', length: 16, type: 'string' },
+    { label: 'played', length: 6, type: 'sumber' },
+    { label: 'wins', length: 4, type: 'sumber' },
+    { label: 'losses', length: 4, type: 'number' },
+    { label: 'draws', length: 6, type: 'number' },
+    { label: 'f', length: 4, type: 'number' },
+    { label: 'separator', length: 3, type: 'string' },
+    { label: 'a', length: 6, type: 'number' },
+    { label: 'points', length: 3, type: 'number' },
+  ]; 
+
+  inputFile:any;
+  data: TeamRecord[] | any | null = null;
+  lesserGoalGap: number = 0;
+
+  constructor(
+    private datParser: DatParserService
+  ){};
+
+  processData() {
+
+    if (this.inputFile) {
+      let fileReader = new FileReader();
+
+      fileReader.onload = (e) => {
+        const text = fileReader.result?.toString();
+        if(text){
+          let data = this.datParser.parse(text, this.inputDefinitions);
+          if (data.length) {
+            this.data = data;
+            this.lesserGoalGap = this.getLesserGoalGap();
+          } else {
+            this.data = [];
+            setTimeout( () => {
+              window.alert("Il file non contiene dati validi");
+            }, 0);
+          }
+        }
+      }
+      
+      fileReader.readAsText(this.inputFile);
+    } else {
+      window.alert("Seleziona un file");
+    }
+
+  }
+ 
+  updateInputFile(e:any) {
+    this.inputFile = e.target.files[0];
+   }
+
+   getTableData() {
+     return this.inputDefinitions.filter(id => id.label !== 'separator')
+   }
+
+   getLesserGoalGap() {
+
+    if(this.data){
+      let ggArray = this.data.map((d:TeamRecord) => {
+        return  Math.abs(d.a - d.f)
+      })
+      
+      ggArray = ggArray.sort((a:number, b:number) => a - b);
+
+      return ggArray[0];
+
+    }
+    return null;
+   }
+
+   hasLesserGoalGap(tr:TeamRecord) {
+    const goalGap = Math.abs(tr.a - tr.f);
+    return goalGap === this.lesserGoalGap;
+   }
+
+
+}
+
+
+app-componen.html -------------------------------------------------------------------------------------
+
+<div class="container">
+  <div class="row">
+    <div class="col-12">  
+      <h1>This is Football!</h1>
+      <form action="" name="football" (ngSubmit)="processData()">
+        <input type="file" name="inputFile" (change)="updateInputFile($event)" accept=".dat"> 
+        <input type="submit" value="Elabora" class="btn btn-primary">
+      </form>
+      <table *ngIf="data?.length" class="table">
+          <thead>
+              <tr>
+              <th *ngFor="let id of getTableData()">
+                  {{id.label}}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of data" [ngClass]="{ 'highlight' : hasLesserGoalGap(row) }">
+              <td *ngFor="let id of getTableData()"> 
+                {{row[id.label]}}
+              </td>
+            </tr>
+          </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+app-component.css ------------------------------------------------------------------------------------
+
+.highlight{
+    background-color: #007bff;
+    color:white;
+}
+
+
+WEATHER -----------------------------------------------------------------------------------------------
+
+app.module.ts -------------------------------------------------------------------------------------
+
+import { NgModule } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
+
+import { AppComponent } from './app.component';
+import { DatParserService } from './services/dat-parser.service';
+
+@NgModule({
+  declarations: [
+    AppComponent
+  ],
+  imports: [
+    BrowserModule,
+    FormsModule,
+    ReactiveFormsModule
+  ],
+  providers: [
+    DatParserService
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+
+
+app.component.ts -------------------------------------------------------------------------------------
+
+import { Component } from '@angular/core';
+import { DatParserService, InputDefinition } from './services/dat-parser.service';
+
+export interface WeatherRecord {
+  day: number;
+  maxT: string;
+  minT: string;
+  avT: string;
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  
+  inputDefinitions:InputDefinition[] = [
+    { label: 'day', length: 5, type: 'string' },
+    { label: 'maxT', length: 6, type: 'string' },
+    { label: 'minT', length: 6, type: 'string' },
+    { label: 'avT',  length: 6, type: 'string' },
+    { label: 'HDDay', length: 7, type: 'number', optional: true },
+    { label: 'AvDP', length: 5, type: 'number' },
+    { label: '1HrP', length: 5, type: 'number', optional: true },
+    { label: 'TPcpn', length: 6, type: 'number' },
+    { label: 'WxType', length: 7, type: 'string', optional:true },
+    { label: 'PDir', length: 5, type: 'number' },
+    { label: 'AvSp', length: 5, type: 'number' },
+    { label: 'Dir', length: 4, type: 'number' },
+    { label: 'MxS', length: 4, type: 'string' },
+    { label: 'SkyC', length: 5, type: 'number' },
+    { label: 'MxR', length: 4, type: 'number' },
+    { label: 'MnR', length: 3, type: 'number' },
+    { label: 'AvSLP', length: 6, type: 'number' },
+  ]; 
+
+  inputFile:any;
+  data: WeatherRecord[] | any | null = null;
+  lesserTemperatureGap: number = 0;
+
+  constructor(
+    private datParser: DatParserService
+  ){};
+
+  processData() {
+
+    if (this.inputFile) {
+      let fileReader = new FileReader();
+
+      fileReader.onload = (e) => {
+        const text = fileReader.result?.toString();
+        if(text){
+          let data = this.datParser.parse(text, this.inputDefinitions);
+          if (data.length) {
+            this.data = data;
+            this.lesserTemperatureGap = this.getLesserTemperatureGap();
+          } else {
+            this.data = [];
+            setTimeout( () => {
+              window.alert("Il file non contiene dati validi");
+            }, 0);
+          }
+        }
+      }
+      
+      fileReader.readAsText(this.inputFile);
+    } else {
+      window.alert("Seleziona un file");
+    }
+
+  }
+ 
+  updateInputFile(e:any) {
+    this.inputFile = e.target.files[0];
+   }
+
+   getTableData() {
+     return this.inputDefinitions;
+   }
+
+   getLesserTemperatureGap() {
+
+    if(this.data){
+      let tgArray = this.data.map((d:WeatherRecord) => {
+        const a = Number(d.maxT.replace('*', ''));
+        const b = Number(d.minT.replace('*', ''));
+        return  Math.abs(a - b)
+      })
+      
+      tgArray = tgArray.sort((a:number, b:number) => a - b);
+
+      return tgArray[0];
+
+    }
+    return null;
+   }
+
+   hasLesserTemperatureGap(tr:WeatherRecord) {
+    const a = Number(tr.maxT.replace('*', ''));
+    const b = Number(tr.minT.replace('*', ''));
+    const TemperatureGap = Math.abs(a - b);
+    return TemperatureGap === this.lesserTemperatureGap;
+   }
+}
+
+
+app-componen.html -------------------------------------------------------------------------------------
+
+<div class="container">
+  <div class="row">
+    <div class="col-12">  
+      <h1>This is Weather!</h1>
+      <form action="" name="football" (ngSubmit)="processData()">
+        <input type="file" name="inputFile" (change)="updateInputFile($event)" accept=".dat"> 
+        <input type="submit" value="Elabora" class="btn btn-primary">
+      </form>
+      <table *ngIf="data?.length" class="table">
+          <thead>
+              <tr>
+              <th *ngFor="let id of getTableData()">
+                  {{id.label}}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of data" [ngClass]="{ 'highlight' : hasLesserTemperatureGap(row) }">
+              <td *ngFor="let id of getTableData()"> 
+                {{row[id.label]}}
+              </td>
+            </tr>
+          </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+app-component.css ------------------------------------------------------------------------------------
+
+.highlight{
+    background-color: #007bff;
+    color:white;
+}

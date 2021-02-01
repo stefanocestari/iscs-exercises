@@ -21,16 +21,16 @@ export interface TeamRecord {
 export class AppComponent {
 
   inputDefinitions:InputDefinition[] = [
-    { label: 'placement', length: 7, type: 'String' },
-    { label: 'teamName', length: 16, type: 'String' },
-    { label: 'played', length: 6, type: 'Number' },
-    { label: 'wins', length: 4, type: 'Number' },
-    { label: 'losses', length: 4, type: 'Number' },
-    { label: 'draws', length: 6, type: 'Number' },
-    { label: 'f', length: 4, type: 'Number' },
-    { label: 'separator', length: 3, type: 'String' },
-    { label: 'a', length: 6, type: 'Number' },
-    { label: 'points', length: 3, type: 'Number' },
+    { label: 'placement', length: 7, type: 'string' },
+    { label: 'teamName', length: 16, type: 'string' },
+    { label: 'played', length: 6, type: 'sumber' },
+    { label: 'wins', length: 4, type: 'sumber' },
+    { label: 'losses', length: 4, type: 'number' },
+    { label: 'draws', length: 6, type: 'number' },
+    { label: 'f', length: 4, type: 'number' },
+    { label: 'separator', length: 3, type: 'string' },
+    { label: 'a', length: 6, type: 'number' },
+    { label: 'points', length: 3, type: 'number' },
   ]; 
 
   inputFile:any;
